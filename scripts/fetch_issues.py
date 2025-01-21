@@ -1,11 +1,15 @@
+import os
 import requests
 import pyarrow as pa
 import pyarrow.parquet as pq
+from dotenv import load_dotenv
+
+load_dotenv()
 
 GITHUB_API = "https://api.github.com"
 REPO_OWNER = "kubernetes"
 REPO_NAME = "kubernetes"
-TOKEN = "your_github_token_here"  # Remplacez par votre token GitHub
+TOKEN = os.getenv("GITHUB_TOKEN")
 
 def fetch_issues():
     url = f"{GITHUB_API}/repos/{REPO_OWNER}/{REPO_NAME}/issues"
