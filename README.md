@@ -31,7 +31,7 @@ kubernetes-data-warehouse/
 │   ├── fetch_comments.py
 │   ├── fetch_branches.py
 │   ├── load_to_duckdb.py   # Script Python pour charger les données dans DuckDB
-│   ├── run_all_optimized.py # Script principal pour exécuter tous les collecteurs
+│   ├── run_all.py # Script principal pour exécuter tous les collecteurs
 └── README.md
 ```
 
