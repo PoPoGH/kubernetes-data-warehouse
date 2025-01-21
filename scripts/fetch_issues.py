@@ -1,36 +1,45 @@
-import os
 import requests
-import pyarrow as pa
-import pyarrow.parquet as pq
-from dotenv import load_dotenv
+import pandas as pd
+from pathlib import Path
+import os
+from tqdm import tqdm
 
-load_dotenv()
-
-GITHUB_API = "https://api.github.com"
-REPO_OWNER = "kubernetes"
-REPO_NAME = "kubernetes"
-TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+REPO_OWNER = 'kubernetes'
+REPO_NAME = 'kubernetes'
+DATA_DIR = Path('data')
 
 def fetch_issues():
-    url = f"{GITHUB_API}/repos/{REPO_OWNER}/{REPO_NAME}/issues"
-    headers = {"Authorization": f"token {TOKEN}"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
-
-def save_to_parquet(data, file_name):
-    table = pa.Table.from_pydict(data)
-    pq.write_table(table, file_name)
+    url = f'https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/issues'
+    headers = {'Authorization': f'token {GITHUB_TOKEN}'} if GITHUB_TOKEN else {}
+    
+    try:
+        all_issues = []
+        page = 1
+        
+        while True:
+            response = requests.get(url, headers=headers, params={'page': page, 'per_page': 100})
+            response.raise_for_status()
+            
+            issues = response.json()
+            if not issues:
+                break
+                
+            all_issues.extend(issues)
+            page += 1
+            
+            # Show progress
+            print(f"Fetched {len(all_issues)} issues...")
+            
+        df = pd.DataFrame(all_issues)
+        
+        # Save to parquet
+        DATA_DIR.mkdir(exist_ok=True)
+        df.to_parquet(DATA_DIR / 'issues.parquet')
+        print(f"Saved {len(df)} issues to {DATA_DIR / 'issues.parquet'}")
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching issues: {e}")
 
 if __name__ == "__main__":
-    issues = fetch_issues()
-    data = {
-        "id": [issue["id"] for issue in issues],
-        "title": [issue["title"] for issue in issues],
-        "state": [issue["state"] for issue in issues],
-        "created_at": [issue["created_at"] for issue in issues],
-        "closed_at": [issue.get("closed_at") for issue in issues],
-        "labels": [[label["name"] for label in issue["labels"]] for issue in issues]
-    }
-    save_to_parquet(data, "data/issues.parquet")
-    print("Issues saved to data/issues.parquet")
+    fetch_issues()
